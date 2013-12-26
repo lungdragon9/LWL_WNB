@@ -20,7 +20,7 @@
  *
  */
 
-package weka.classifiers.lazy;
+package Research_LWL_WNB.LWL_WNB;
 
 import weka.classifiers.Classifier;
 import weka.classifiers.SingleClassifierEnhancer;
