@@ -64,6 +64,8 @@ public class DataCollection {
         
         
         double[] newWeightAttributes = new double[tmpInstances.numAttributes()];
+        double[] newWeightInstandes = new double[train.numInstances()];
+        Instances weightedInstances = new Instances(train);
         for(int i =0; i < test.numInstances(); i ++)
         {
         	//For Basic model without any weightsAttributes
@@ -71,7 +73,12 @@ public class DataCollection {
             model.setWeight(weightsAttributes);
             costMatrixNWModifier(model.distributionForInstance(test.instance(i)),test.instance(i));
             
+            newWeightInstandes =  getweightsInstances(train,test.instance(i));
             
+            for(int a =0; a < train.numInstances(); a++)
+            {
+            	weightedInstances.instance(a).setWeight(newWeightInstandes[a]);
+            }
         	
         }
         costMatricOutputNW();
@@ -82,7 +89,7 @@ public class DataCollection {
 	 * @return
 	 * @throws Exception 
 	 */
-	public static double[] getweightsAttributes(Instances train,Instance test) throws Exception
+	public static double[] getweightsInstances(Instances train,Instance test) throws Exception
 	{        
         LWL LWLModel = new LWL();
         LWLModel.buildClassifier(train);
