@@ -31,7 +31,7 @@ public class DataCollection {
 
         //Finds data
         NaiveBayes model = new NaiveBayes();
-        tmpInstances = (new DataSource("C:\\WorkSpace\\binary\\mushroom\\data.arff")).getDataSet();
+        tmpInstances = (new DataSource("C:\\WorkSpace\\binary\\heart-statlog\\heart-statlog.arff")).getDataSet();
 	
         //Randomize the dataset
         tmpInstances.randomize(tmpInstances.getRandomNumberGenerator(System.currentTimeMillis()));
@@ -70,18 +70,25 @@ public class DataCollection {
         {
         	//For Basic model without any weightsAttributes
         	//Builds the Naive Bayes Model
+        	model.buildClassifier(train);
             model.setWeight(weightsAttributes);
             costMatrixNWModifier(model.distributionForInstance(test.instance(i)),test.instance(i));
             
-            newWeightInstandes =  getweightsInstances(train,test.instance(i));
             
+            //Gets the LWL Weights
+            newWeightInstandes =  getweightsInstances(train,test.instance(i)); 
+            //Sets the LWL Weights
             for(int a =0; a < train.numInstances(); a++)
             {
             	weightedInstances.instance(a).setWeight(newWeightInstandes[a]);
             }
+            model.buildClassifier(weightedInstances);
+            model.setWeight(weightsAttributes);
+            costMatrixIWModifier(model.distributionForInstance(test.instance(i)),test.instance(i));
         	
         }
         costMatricOutputNW();
+        costMatricOutputIW();
 	}
 	
 	/**
@@ -176,6 +183,17 @@ public class DataCollection {
 	{
 		double a = costMatrixNW[0][0], b = costMatrixNW[0][1], c = costMatrixNW[1][0], d = costMatrixNW[1][1];
 		
+		System.out.println("No Weights");
+		System.out.println("Accuracy : " + (a+d)/(a+b+c+d));
+		System.out.println("Recall : " + (a)/(a+b));
+		System.out.println("Precision : " + (a)/(a+c));
+		System.out.println("F-Measure : " + (2*a)/(2*a+b+c));
+	}
+	public static void costMatricOutputIW()
+	{
+		double a = costMatrixIW[0][0], b = costMatrixIW[0][1], c = costMatrixIW[1][0], d = costMatrixIW[1][1];
+		
+		System.out.println("\n\n Instance Weights");
 		System.out.println("Accuracy : " + (a+d)/(a+b+c+d));
 		System.out.println("Recall : " + (a)/(a+b));
 		System.out.println("Precision : " + (a)/(a+c));
