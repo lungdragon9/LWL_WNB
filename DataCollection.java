@@ -72,6 +72,15 @@ public class DataCollection {
         double[] newWeightAttributes = new double[tmpInstances.numAttributes()];
         double[] newWeightInstandes = new double[train.numInstances()];
         Instances weightedInstances = new Instances(train);
+        
+/*
+ *\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ 
+ *
+ *LWL->AW
+ *
+ *\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ 
+ */
+        /*
         for(int i =0; i < test.numInstances(); i ++)
         {
         	//For Basic model without any weightsAttributes
@@ -106,20 +115,66 @@ public class DataCollection {
             	model.setWeight(newWeightAttributes);
             	costMatrixBWModifier(model.distributionForInstance(test.instance(i)),test.instance(i),a);
             }
+            */
             
+           
+/*
+ * \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+ * 
+ * AW -> LWL
+ * 
+ *\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+ */
             
-           /* 
             for(int a =0; a < 5; a++)
             {
             	Arrays.fill(newWeightAttributes,1);
             	model.buildClassifier(train);
             	newWeightAttributes = MCMC(train,newWeightAttributes,.05,.00001);
             	model.setWeight(newWeightAttributes);
-            	costMatrixBWModifier(model.distributionForInstance(test.instance(i)),test.instance(i),a);
+            	
+            	for(int q =0; q < test.numInstances(); q ++)
+            	{
+            		
+            		//For Basic model without any weightsAttributes
+                	//Builds the Naive Bayes Model
+                	model.buildClassifier(train);
+                    model.setWeight(weightsAttributes);
+                    costMatrixNWModifier(model.distributionForInstance(test.instance(q)),test.instance(q),0);
+            		
+
+                	model.buildClassifier(train);
+                    model.setWeight(newWeightAttributes);
+            		//Attribute Weights only
+                	costMatrixAWModifier(model.distributionForInstance(test.instance(q)),test.instance(q),a);
+            		
+            		//Gets the LWL Weights
+                    newWeightInstandes =  getweightsInstances(train,test.instance(q),newWeightAttributes); 
+                    //Sets the LWL Weights
+                    for(int w =0; w < train.numInstances(); w++)
+                    {
+                    	weightedInstances.instance(a).setWeight(newWeightInstandes[w]);
+                    }
+                    model.buildClassifier(weightedInstances);
+                    model.setWeight(newWeightAttributes);
+                    costMatrixBWModifier(model.distributionForInstance(test.instance(q)),test.instance(q),a);
+                    
+                    
+                    //Gets the LWL Weights
+                    newWeightInstandes =  getweightsInstances(train,test.instance(q),weightsAttributes); 
+                    //Sets the LWL Weights
+                    for(int w =0; w < train.numInstances(); w++)
+                    {
+                    	weightedInstances.instance(a).setWeight(newWeightInstandes[w]);
+                    }
+                    model.buildClassifier(weightedInstances);
+                    model.setWeight(weightsAttributes);
+                    costMatrixIWModifier(model.distributionForInstance(test.instance(q)),test.instance(q),a);
+            	}
             }
-            */
+            
         	
-        }
+        
         costMatricOutputNW();
         costMatricOutputIW();
         costMatricOutputAW();
@@ -128,6 +183,7 @@ public class DataCollection {
         reset();
         }
 	}
+	
 	
 	/**
 	 * Finds the LWL weightsAttributes
@@ -325,7 +381,7 @@ public class DataCollection {
 			   c = ((costMatrixAW[1][0][0]+ costMatrixAW[1][0][1] + costMatrixAW[1][0][2] + costMatrixAW[1][0][3] + costMatrixAW[1][0][4])/5), 
 			   d = ((costMatrixAW[1][1][0]+ costMatrixAW[1][1][1] + costMatrixAW[1][1][2] + costMatrixAW[1][1][3] + costMatrixAW[1][1][4])/5);
 		
-		System.out.println("\n\n LWL -> AW Weights");
+		System.out.println("\n\n AW ONLY Weights");
 		System.out.println("Accuracy : " + (a+d)/(a+b+c+d));
 		System.out.println("Recall : " + (a)/(a+b));
 		System.out.println("Precision : " + (a)/(a+c));
@@ -339,7 +395,7 @@ public class DataCollection {
 			   c = ((costMatrixBW[1][0][0]+ costMatrixBW[1][0][1] + costMatrixBW[1][0][2] + costMatrixBW[1][0][3] + costMatrixBW[1][0][4])/5), 
 			   d = ((costMatrixBW[1][1][0]+ costMatrixBW[1][1][1] + costMatrixBW[1][1][2] + costMatrixBW[1][1][3] + costMatrixBW[1][1][4])/5);
 		
-		System.out.println("\n\n AW ONLY Weights");
+		System.out.println("\n\n BOTH Weights");
 		System.out.println("Accuracy : " + (a+d)/(a+b+c+d));
 		System.out.println("Recall : " + (a)/(a+b));
 		System.out.println("Precision : " + (a)/(a+c));
