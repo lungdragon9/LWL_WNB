@@ -21,8 +21,8 @@ import weka.core.converters.ConverterUtils.DataSource;
 public class DataCollection {
 
 	
-	public static int[][] costMatrixNW = new int[2][2];
-	public static int[][] costMatrixIW = new int[2][2];
+	public static int[][][] costMatrixNW = new int[2][2][5];
+	public static int[][][] costMatrixIW = new int[2][2][5];
 	public static int[][][] costMatrixAW = new int[2][2][5];
 	public static int[][][] costMatrixBW = new int[2][2][5];
 	/**
@@ -37,7 +37,7 @@ public class DataCollection {
         tmpInstances = (new DataSource("C:\\WorkSpace\\binary\\colic\\colic.arff")).getDataSet();
 	
         
-        for(int k =0; k < 5; k++)
+        for(int k =0; k < 10; k++)
         {
         //Randomize the dataset
         tmpInstances.randomize(tmpInstances.getRandomNumberGenerator(System.currentTimeMillis()));
@@ -78,11 +78,11 @@ public class DataCollection {
         	//Builds the Naive Bayes Model
         	model.buildClassifier(train);
             model.setWeight(weightsAttributes);
-            costMatrixNWModifier(model.distributionForInstance(test.instance(i)),test.instance(i));
+            costMatrixNWModifier(model.distributionForInstance(test.instance(i)),test.instance(i),0);
             
             
             //Gets the LWL Weights
-            newWeightInstandes =  getweightsInstances(train,test.instance(i)); 
+            newWeightInstandes =  getweightsInstances(train,test.instance(i),weightsAttributes); 
             //Sets the LWL Weights
             for(int a =0; a < train.numInstances(); a++)
             {
@@ -90,26 +90,42 @@ public class DataCollection {
             }
             model.buildClassifier(weightedInstances);
             model.setWeight(weightsAttributes);
-            costMatrixIWModifier(model.distributionForInstance(test.instance(i)),test.instance(i));
+            costMatrixIWModifier(model.distributionForInstance(test.instance(i)),test.instance(i),0);
             
             for(int a =0; a < 5; a ++)
             {
                 Arrays.fill(newWeightAttributes, 1);
-            	model.buildClassifier(train);
+            	model.buildClassifier(weightedInstances);
             	newWeightAttributes = MCMC(train,newWeightAttributes,.05,.00001);
             	model.setWeight(newWeightAttributes);
             	costMatrixAWModifier(model.distributionForInstance(test.instance(i)),test.instance(i),a);
             	
-            	model.buildClassifier(weightedInstances);
+            	Arrays.fill(newWeightAttributes, 1);
+            	model.buildClassifier(train);
+            	newWeightAttributes = MCMC(train,newWeightAttributes,.05,.00001);
             	model.setWeight(newWeightAttributes);
             	costMatrixBWModifier(model.distributionForInstance(test.instance(i)),test.instance(i),a);
             }
+            
+            
+           /* 
+            for(int a =0; a < 5; a++)
+            {
+            	Arrays.fill(newWeightAttributes,1);
+            	model.buildClassifier(train);
+            	newWeightAttributes = MCMC(train,newWeightAttributes,.05,.00001);
+            	model.setWeight(newWeightAttributes);
+            	costMatrixBWModifier(model.distributionForInstance(test.instance(i)),test.instance(i),a);
+            }
+            */
         	
         }
         costMatricOutputNW();
         costMatricOutputIW();
         costMatricOutputAW();
         costMatricOutputBW();
+        
+        reset();
         }
 	}
 	
@@ -118,17 +134,17 @@ public class DataCollection {
 	 * @return
 	 * @throws Exception 
 	 */
-	public static double[] getweightsInstances(Instances train,Instance test) throws Exception
+	public static double[] getweightsInstances(Instances train,Instance test,double[] AttributeWeights) throws Exception
 	{        
         LWL LWLModel = new LWL();
         LWLModel.buildClassifier(train);
-        double[] LWLweights = LWLModel.getWeightsForDistributionForInstance(test);
+        double[] LWLweights = LWLModel.getWeightsForDistributionForInstance(test,AttributeWeights);
         
 		return LWLweights;
 		
 	}
 	
-	public static void costMatrixNWModifier(double[] predicted, Instance actual)
+	public static void costMatrixNWModifier(double[] predicted, Instance actual,int matrix)
 	{
 		double classValue = actual.classValue();
 		double predictedValue;
@@ -145,27 +161,27 @@ public class DataCollection {
 		{
 			if(classValue == 0)
 			{
-				costMatrixNW[0][0] ++;
+				costMatrixNW[0][0][matrix] ++;
 			}
 			if(classValue == 1)
 			{
-				costMatrixNW[0][1] ++;
+				costMatrixNW[0][1][matrix] ++;
 			}
 		}
 		if(predictedValue == 1)
 		{
 			if(classValue == 0)
 			{
-				costMatrixNW[1][0] ++;
+				costMatrixNW[1][0][matrix] ++;
 			}
 			if(classValue == 1)
 			{
-				costMatrixNW[1][1] ++;
+				costMatrixNW[1][1][matrix] ++;
 			}
 		}
 	}
 	
-	public static void costMatrixIWModifier(double[] predicted, Instance actual)
+	public static void costMatrixIWModifier(double[] predicted, Instance actual,int matrix)
 	{
 		double classValue = actual.classValue();
 		double predictedValue;
@@ -182,22 +198,22 @@ public class DataCollection {
 		{
 			if(classValue == 0)
 			{
-				costMatrixIW[0][0] ++;
+				costMatrixIW[0][0][matrix] ++;
 			}
 			if(classValue == 1)
 			{
-				costMatrixIW[0][1] ++;
+				costMatrixIW[0][1][matrix] ++;
 			}
 		}
 		if(predictedValue == 1)
 		{
 			if(classValue == 0)
 			{
-				costMatrixIW[1][0] ++;
+				costMatrixIW[1][0][matrix] ++;
 			}
 			if(classValue == 1)
 			{
-				costMatrixIW[1][1] ++;
+				costMatrixIW[1][1][matrix] ++;
 			}
 		}
 	}
@@ -277,7 +293,10 @@ public class DataCollection {
 	}
 	public static void costMatricOutputNW()
 	{
-		double a = costMatrixNW[0][0], b = costMatrixNW[0][1], c = costMatrixNW[1][0], d = costMatrixNW[1][1];
+		double a = ((costMatrixNW[0][0][0]+ costMatrixNW[0][0][1] + costMatrixNW[0][0][2] + costMatrixNW[0][0][3] + costMatrixNW[0][0][4])/5), 
+				   b = ((costMatrixNW[0][1][0]+ costMatrixNW[0][1][1] + costMatrixNW[0][1][2] + costMatrixNW[0][1][3] + costMatrixNW[0][1][4])/5), 
+				   c = ((costMatrixNW[1][0][0]+ costMatrixNW[1][0][1] + costMatrixNW[1][0][2] + costMatrixNW[1][0][3] + costMatrixNW[1][0][4])/5), 
+				   d = ((costMatrixNW[1][1][0]+ costMatrixNW[1][1][1] + costMatrixNW[1][1][2] + costMatrixNW[1][1][3] + costMatrixNW[1][1][4])/5);
 		
 		System.out.println("No Weights");
 		System.out.println("Accuracy : " + (a+d)/(a+b+c+d));
@@ -287,7 +306,10 @@ public class DataCollection {
 	}
 	public static void costMatricOutputIW()
 	{
-		double a = costMatrixIW[0][0], b = costMatrixIW[0][1], c = costMatrixIW[1][0], d = costMatrixIW[1][1];
+		double a = ((costMatrixIW[0][0][0]+ costMatrixIW[0][0][1] + costMatrixIW[0][0][2] + costMatrixIW[0][0][3] + costMatrixIW[0][0][4])/5), 
+				   b = ((costMatrixIW[0][1][0]+ costMatrixIW[0][1][1] + costMatrixIW[0][1][2] + costMatrixIW[0][1][3] + costMatrixIW[0][1][4])/5), 
+				   c = ((costMatrixIW[1][0][0]+ costMatrixIW[1][0][1] + costMatrixIW[1][0][2] + costMatrixIW[1][0][3] + costMatrixIW[1][0][4])/5), 
+				   d = ((costMatrixIW[1][1][0]+ costMatrixIW[1][1][1] + costMatrixIW[1][1][2] + costMatrixIW[1][1][3] + costMatrixIW[1][1][4])/5);
 		
 		System.out.println("\n\n Instance Weights");
 		System.out.println("Accuracy : " + (a+d)/(a+b+c+d));
@@ -303,7 +325,7 @@ public class DataCollection {
 			   c = ((costMatrixAW[1][0][0]+ costMatrixAW[1][0][1] + costMatrixAW[1][0][2] + costMatrixAW[1][0][3] + costMatrixAW[1][0][4])/5), 
 			   d = ((costMatrixAW[1][1][0]+ costMatrixAW[1][1][1] + costMatrixAW[1][1][2] + costMatrixAW[1][1][3] + costMatrixAW[1][1][4])/5);
 		
-		System.out.println("\n\n Attribute Weights");
+		System.out.println("\n\n LWL -> AW Weights");
 		System.out.println("Accuracy : " + (a+d)/(a+b+c+d));
 		System.out.println("Recall : " + (a)/(a+b));
 		System.out.println("Precision : " + (a)/(a+c));
@@ -317,7 +339,7 @@ public class DataCollection {
 			   c = ((costMatrixBW[1][0][0]+ costMatrixBW[1][0][1] + costMatrixBW[1][0][2] + costMatrixBW[1][0][3] + costMatrixBW[1][0][4])/5), 
 			   d = ((costMatrixBW[1][1][0]+ costMatrixBW[1][1][1] + costMatrixBW[1][1][2] + costMatrixBW[1][1][3] + costMatrixBW[1][1][4])/5);
 		
-		System.out.println("\n\n Both Weights");
+		System.out.println("\n\n AW ONLY Weights");
 		System.out.println("Accuracy : " + (a+d)/(a+b+c+d));
 		System.out.println("Recall : " + (a)/(a+b));
 		System.out.println("Precision : " + (a)/(a+c));
@@ -363,7 +385,9 @@ public class DataCollection {
     		model.setWeight(weights);
     		eval.evaluateModel(model, validate_MCMC);
     		AUC = ThresholdCurve.getROCArea(curvefinder.getCurve(eval.predictions()));
+    		//AUC = eval.areaUnderROC(1);
     		
+    		//System.out.println(AUC);
     		//weightDisplay(weights);
     		
     		for(int i = 0; i < weights.length; i++)
@@ -392,6 +416,7 @@ public class DataCollection {
     		model.setWeight(weights);
     		eval.evaluateModel(model, validate_MCMC);
     		AUCPost = ThresholdCurve.getROCArea(curvefinder.getCurve(eval.predictions()));
+    		//AUCPost = eval.areaUnderROC(1);
     		
     		AUCDelta = AUCPost - AUC;
     		
@@ -440,6 +465,24 @@ public class DataCollection {
 		{
 			weights_direction[i] = r.nextInt(High-Low) + Low;
 		}
+    }
+    
+    public static void reset()
+    {
+    	
+    	for(int i =0; i < 2; i ++)
+    	{
+    		for(int a =0; a < 2; a++)
+    		{
+    			for(int k =0; k < 5; k++)
+    			{
+    				costMatrixNW[i][a][k] =0;
+    				costMatrixIW[i][a][k]=0;
+    				costMatrixAW[i][a][k]=0;
+    				costMatrixBW[i][a][k]=0;
+    			}
+    		}
+    	}
     }
 
 }
