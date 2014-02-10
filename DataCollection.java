@@ -46,8 +46,9 @@ public class DataCollection {
         costMatrixLIL_AW = new int [2][2][NUMRUNS];
         costMatrixAW_LIL = new int [2][2][NUMRUNS];
         
-        
-        for(int k =0; k < 10; k++)
+        reset();
+
+        for(int k =0; k < 1; k++)
         {
         //Randomize the dataset
         tmpInstances.randomize(tmpInstances.getRandomNumberGenerator(System.currentTimeMillis()));
@@ -74,121 +75,23 @@ public class DataCollection {
         //Sets the class
         train.setClass(train.attribute(train.numAttributes()-1));
         test.setClass(test.attribute(train.numAttributes()-1));
-        
-        //Builds the model
-        model.buildClassifier(train);
-        
-        
-        double[] newWeightAttributes = new double[tmpInstances.numAttributes()];
-        double[] newWeightInstandes = new double[train.numInstances()];
-        Instances weightedInstances = new Instances(train);
-        
-/*
- *\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ 
- *
- *LWL->AW
- *
- *\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ 
- */
-        /*
-        for(int i =0; i < test.numInstances(); i ++)
-        {
-        	//For Basic model without any weightsAttributes
-        	//Builds the Naive Bayes Model
-        	model.buildClassifier(train);
-            model.setWeight(weightsAttributes);
-            costMatrixNWModifier(model.distributionForInstance(test.instance(i)),test.instance(i),0);
-            
-            
-            //Gets the LWL Weights
-            newWeightInstandes =  getweightsInstances(train,test.instance(i),weightsAttributes); 
-            //Sets the LWL Weights
-            for(int a =0; a < train.numInstances(); a++)
-            {
-            	weightedInstances.instance(a).setWeight(newWeightInstandes[a]);
-            }
-            model.buildClassifier(weightedInstances);
-            model.setWeight(weightsAttributes);
-            costMatrixIWModifier(model.distributionForInstance(test.instance(i)),test.instance(i),0);
-            
-            for(int a =0; a < 5; a ++)
-            {
-                Arrays.fill(newWeightAttributes, 1);
-            	model.buildClassifier(weightedInstances);
-            	newWeightAttributes = MCMC(train,newWeightAttributes,.05,.00001);
-            	model.setWeight(newWeightAttributes);
-            	costMatrixAWModifier(model.distributionForInstance(test.instance(i)),test.instance(i),a);
-            	
-            	Arrays.fill(newWeightAttributes, 1);
-            	model.buildClassifier(train);
-            	newWeightAttributes = MCMC(train,newWeightAttributes,.05,.00001);
-            	model.setWeight(newWeightAttributes);
-            	costMatrixLIL_AWModifier(model.distributionForInstance(test.instance(i)),test.instance(i),a);
-            }
-            */
-            
-           
-/*
- * \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
- * 
- * AW -> LWL
- * 
- *\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
- */
-            
-            for(int a =0; a < 5; a++)
-            {
-            	Arrays.fill(newWeightAttributes,1);
-            	model.buildClassifier(train);
-            	newWeightAttributes = MCMC(train,newWeightAttributes,.05,.00001);
-            	model.setWeight(newWeightAttributes);
-            	
-            	for(int q =0; q < test.numInstances(); q ++)
-            	{
-            		
-            		//For Basic model without any weightsAttributes
-                	//Builds the Naive Bayes Model
-                	model.buildClassifier(train);
-                    model.setWeight(weightsAttributes);
-                    costMatrixNWModifier(model.distributionForInstance(test.instance(q)),test.instance(q),0);
-            		
 
-                	model.buildClassifier(train);
-                    model.setWeight(newWeightAttributes);
-            		//Attribute Weights only
-                	costMatrixAWModifier(model.distributionForInstance(test.instance(q)),test.instance(q),a);
-            		
-            		//Gets the LWL Weights
-                    newWeightInstandes =  getweightsInstances(train,test.instance(q),newWeightAttributes); 
-                    //Sets the LWL Weights
-                    for(int w =0; w < train.numInstances(); w++)
-                    {
-                    	weightedInstances.instance(a).setWeight(newWeightInstandes[w]);
-                    }
-                    model.buildClassifier(weightedInstances);
-                    model.setWeight(newWeightAttributes);
-                    costMatrixLIL_AWModifier(model.distributionForInstance(test.instance(q)),test.instance(q),a);
-                    
-                    
-                    //Gets the LWL Weights
-                    newWeightInstandes =  getweightsInstances(train,test.instance(q),weightsAttributes); 
-                    //Sets the LWL Weights
-                    for(int w =0; w < train.numInstances(); w++)
-                    {
-                    	weightedInstances.instance(a).setWeight(newWeightInstandes[w]);
-                    }
-                    model.buildClassifier(weightedInstances);
-                    model.setWeight(weightsAttributes);
-                    costMatrixIWModifier(model.distributionForInstance(test.instance(q)),test.instance(q),a);
-            	}
-            }
-            
-        	
-        
+    	model.buildClassifier(train);
+    	
+    	System.out.println(test.numInstances());
+        for(int a =0; a < test.numInstances(); a ++)
+        {
+        	costMatrixNWModifier(model.distributionForInstance(test.instance(a)),test.instance(a),0);
+	        LWL(train,test.instance(a));
+	        AW(train,test.instance(a));
+	        LWL__AW(train,test.instance(a));
+	        AW_LWL(train,test.instance(a));
+        }
         costMatricOutputNW();
         costMatricOutputIW();
         costMatricOutputAW();
         costMatricOutputLWL_AW();
+        costMatricOutputAW_LWL();
         
         reset();
         }
@@ -395,59 +298,319 @@ public class DataCollection {
 		}
 	}
 	
-public static void costMatricOutputNW()
+	public static void costMatricOutputNW()
 	{
-		double a = ((costMatrixNW[0][0][0]+ costMatrixNW[0][0][1] + costMatrixNW[0][0][2] + costMatrixNW[0][0][3] + costMatrixNW[0][0][4])/5), 
-				   b = ((costMatrixNW[0][1][0]+ costMatrixNW[0][1][1] + costMatrixNW[0][1][2] + costMatrixNW[0][1][3] + costMatrixNW[0][1][4])/5), 
-				   c = ((costMatrixNW[1][0][0]+ costMatrixNW[1][0][1] + costMatrixNW[1][0][2] + costMatrixNW[1][0][3] + costMatrixNW[1][0][4])/5), 
-				   d = ((costMatrixNW[1][1][0]+ costMatrixNW[1][1][1] + costMatrixNW[1][1][2] + costMatrixNW[1][1][3] + costMatrixNW[1][1][4])/5);
+	double AccuracyMean =0, RecallMean=0, PrecisionMean=0, FMeasureMean=0, a,b,c,d;
+
+		for(int i =0; i < NUMRUNS; i ++)
+		{
+			a = costMatrixNW[0][0][i];
+			b = costMatrixNW[0][1][i];
+			c = costMatrixNW[1][0][i];
+			d = costMatrixNW[1][1][i];
+			
+			if(costMatrixNW[0][0][i] == 0)
+			{
+				break;
+			}
+			
+			AccuracyMean += (a+d)/(a+b+c+d);
+			RecallMean += (a)/(a+b);
+			PrecisionMean +=(a)/(a+c);
+			FMeasureMean +=(2*a)/(2*a+b+c);
+			
+		}
+		
+		AccuracyMean /=1;
+		RecallMean /=1;
+		PrecisionMean /=1;
+		FMeasureMean /=1;
+		
+		
+		double sumA=0,sumR=0,sumP=0,sumF=0,help =0;
+		
+		for(int i =0; i < NUMRUNS; i ++)
+		{
+			a = costMatrixNW[0][0][i];
+			b = costMatrixNW[0][1][i];
+			c = costMatrixNW[1][0][i];
+			d = costMatrixNW[1][1][i];
+			
+			if(costMatrixNW[0][0][i] == 0)
+			{
+				break;
+			}
+			
+			help = (((a+d)/(a+b+c+d)) - AccuracyMean);
+			sumA += Math.pow(help,2);
+			help = (((a)/(a+b)) - RecallMean);
+			sumR += Math.pow(help,2);
+			help = (((a)/(a+c)) - PrecisionMean);
+			sumP += Math.pow(help,2);
+			help = (((2*a)/(2*a+b+c)) - FMeasureMean);
+			sumF += Math.pow(help,2);
+		}
+		
+		sumA /= 1;
+		sumR /= 1;
+		sumP /= 1;
+		sumF /= 1;
+		
+		sumA = Math.sqrt(sumA);
+		sumR= Math.sqrt(sumR);
+		sumP = Math.sqrt(sumP);
+		sumF = Math.sqrt(sumF);
 		
 		System.out.println("No Weights");
-		System.out.println("Accuracy : " + (a+d)/(a+b+c+d));
-		System.out.println("Recall : " + (a)/(a+b));
-		System.out.println("Precision : " + (a)/(a+c));
-		System.out.println("F-Measure : " + (2*a)/(2*a+b+c));
+		System.out.println("Accuracy : " + AccuracyMean + " +/-" + sumA);
+		System.out.println("Recall : " + RecallMean + " +/-" + sumR);
+		System.out.println("Precision : " + PrecisionMean + " +/-" + sumP);
+		System.out.println("F-Measure : " + FMeasureMean + " +/-" + sumF);
 	}
 	public static void costMatricOutputIW()
 	{
-		double a = ((costMatrixIW[0][0][0]+ costMatrixIW[0][0][1] + costMatrixIW[0][0][2] + costMatrixIW[0][0][3] + costMatrixIW[0][0][4])/5), 
-				   b = ((costMatrixIW[0][1][0]+ costMatrixIW[0][1][1] + costMatrixIW[0][1][2] + costMatrixIW[0][1][3] + costMatrixIW[0][1][4])/5), 
-				   c = ((costMatrixIW[1][0][0]+ costMatrixIW[1][0][1] + costMatrixIW[1][0][2] + costMatrixIW[1][0][3] + costMatrixIW[1][0][4])/5), 
-				   d = ((costMatrixIW[1][1][0]+ costMatrixIW[1][1][1] + costMatrixIW[1][1][2] + costMatrixIW[1][1][3] + costMatrixIW[1][1][4])/5);
+		double AccuracyMean =0, RecallMean=0, PrecisionMean=0, FMeasureMean=0, AM=0,RM=0,PM=0,FMM=0,a,b,c,d;
+
+		for(int i =0; i < NUMRUNS; i ++)
+		{
+			a = costMatrixIW[0][0][i];
+			b = costMatrixIW[0][1][i];
+			c = costMatrixIW[1][0][i];
+			d = costMatrixIW[1][1][i];
+			
+			if(costMatrixIW[0][0][i] == 0)
+			{
+				break;
+			}
+			
+			AccuracyMean += (a+d)/(a+b+c+d);
+			RecallMean += (a)/(a+b);
+			PrecisionMean +=(a)/(a+c);
+			FMeasureMean +=(2*a)/(2*a+b+c);
+		}
 		
-		System.out.println("\n\n Instance Weights");
-		System.out.println("Accuracy : " + (a+d)/(a+b+c+d));
-		System.out.println("Recall : " + (a)/(a+b));
-		System.out.println("Precision : " + (a)/(a+c));
-		System.out.println("F-Measure : " + (2*a)/(2*a+b+c));
+		AccuracyMean /=1;
+		RecallMean /=1;
+		PrecisionMean /=1;
+		FMeasureMean /=1;
+		
+		
+		double sumA=0,sumR=0,sumP=0,sumF=0,help =0;
+		
+		for(int i =0; i < NUMRUNS; i ++)
+		{
+			a = costMatrixIW[0][0][i];
+			b = costMatrixIW[0][1][i];
+			c = costMatrixIW[1][0][i];
+			d = costMatrixIW[1][1][i];
+			
+			if(costMatrixIW[0][0][i] == 0)
+			{
+				break;
+			}
+			
+			help = (((a+d)/(a+b+c+d)) - AccuracyMean);
+			sumA += Math.pow(help,2);
+			help = (((a)/(a+b)) - RecallMean);
+			sumR += Math.pow(help,2);
+			help = (((a)/(a+c)) - PrecisionMean);
+			sumP += Math.pow(help,2);
+			help = (((2*a)/(2*a+b+c)) - FMeasureMean);
+			sumF += Math.pow(help,2);
+		}
+		
+		sumA /= 1;
+		sumR /= 1;
+		sumP /= 1;
+		sumF /= 1;
+		
+		sumA = Math.sqrt(sumA);
+		sumR= Math.sqrt(sumR);
+		sumP = Math.sqrt(sumP);
+		sumF = Math.sqrt(sumF);
+		
+		System.out.println("Instance Weights");
+		System.out.println("Accuracy : " + AccuracyMean + " +/-" + sumA);
+		System.out.println("Recall : " + RecallMean + " +/-" + sumR);
+		System.out.println("Precision : " + PrecisionMean + " +/-" + sumP);
+		System.out.println("F-Measure : " + FMeasureMean + " +/-" + sumF);
 	}
 
 	public static void costMatricOutputAW()
 	{
-		double a = ((costMatrixAW[0][0][0]+ costMatrixAW[0][0][1] + costMatrixAW[0][0][2] + costMatrixAW[0][0][3] + costMatrixAW[0][0][4])/5), 
-			   b = ((costMatrixAW[0][1][0]+ costMatrixAW[0][1][1] + costMatrixAW[0][1][2] + costMatrixAW[0][1][3] + costMatrixAW[0][1][4])/5), 
-			   c = ((costMatrixAW[1][0][0]+ costMatrixAW[1][0][1] + costMatrixAW[1][0][2] + costMatrixAW[1][0][3] + costMatrixAW[1][0][4])/5), 
-			   d = ((costMatrixAW[1][1][0]+ costMatrixAW[1][1][1] + costMatrixAW[1][1][2] + costMatrixAW[1][1][3] + costMatrixAW[1][1][4])/5);
+		double AccuracyMean =0, RecallMean=0, PrecisionMean=0, FMeasureMean=0, AM=0,RM=0,PM=0,FMM=0,a,b,c,d;
+
+		for(int i =0; i < NUMRUNS; i ++)
+		{
+			a = costMatrixAW[0][0][i];
+			b = costMatrixAW[0][1][i];
+			c = costMatrixAW[1][0][i];
+			d = costMatrixAW[1][1][i];
+			
+			AccuracyMean += (a+d)/(a+b+c+d);
+			RecallMean += (a)/(a+b);
+			PrecisionMean +=(a)/(a+c);
+			FMeasureMean +=(2*a)/(2*a+b+c);
+		}
 		
-		System.out.println("\n\n AW ONLY Weights");
-		System.out.println("Accuracy : " + (a+d)/(a+b+c+d));
-		System.out.println("Recall : " + (a)/(a+b));
-		System.out.println("Precision : " + (a)/(a+c));
-		System.out.println("F-Measure : " + (2*a)/(2*a+b+c));
+		AccuracyMean /=NUMRUNS;
+		RecallMean /=NUMRUNS;
+		PrecisionMean /=NUMRUNS;
+		FMeasureMean /=NUMRUNS;
+		
+		
+		double sumA=0,sumR=0,sumP=0,sumF=0,help =0;
+		
+		for(int i =0; i < NUMRUNS; i ++)
+		{
+			a = costMatrixAW[0][0][i];
+			b = costMatrixAW[0][1][i];
+			c = costMatrixAW[1][0][i];
+			d = costMatrixAW[1][1][i];
+			
+			help = (((a+d)/(a+b+c+d)) - AccuracyMean);
+			sumA += Math.pow(help,2);
+			help = (((a)/(a+b)) - RecallMean);
+			sumR += Math.pow(help,2);
+			help = (((a)/(a+c)) - PrecisionMean);
+			sumP += Math.pow(help,2);
+			help = (((2*a)/(2*a+b+c)) - FMeasureMean);
+			sumF += Math.pow(help,2);
+		}
+		
+		sumA /= NUMRUNS;
+		sumR /= NUMRUNS;
+		sumP /= NUMRUNS;
+		sumF /= NUMRUNS;
+		
+		sumA = Math.sqrt(sumA);
+		sumR= Math.sqrt(sumR);
+		sumP = Math.sqrt(sumP);
+		sumF = Math.sqrt(sumF);
+		
+		System.out.println("Attribute Weights");
+		System.out.println("Accuracy : " + AccuracyMean + " +/-" + sumA);
+		System.out.println("Recall : " + RecallMean + " +/-" + sumR);
+		System.out.println("Precision : " + PrecisionMean + " +/-" + sumP);
+		System.out.println("F-Measure : " + FMeasureMean + " +/-" + sumF);
 	}
 	
 	public static void costMatricOutputLWL_AW()
 	{
-		double a = ((costMatrixLIL_AW[0][0][0]+ costMatrixLIL_AW[0][0][1] + costMatrixLIL_AW[0][0][2] + costMatrixLIL_AW[0][0][3] + costMatrixLIL_AW[0][0][4])/5), 
-			   b = ((costMatrixLIL_AW[0][1][0]+ costMatrixLIL_AW[0][1][1] + costMatrixLIL_AW[0][1][2] + costMatrixLIL_AW[0][1][3] + costMatrixLIL_AW[0][1][4])/5), 
-			   c = ((costMatrixLIL_AW[1][0][0]+ costMatrixLIL_AW[1][0][1] + costMatrixLIL_AW[1][0][2] + costMatrixLIL_AW[1][0][3] + costMatrixLIL_AW[1][0][4])/5), 
-			   d = ((costMatrixLIL_AW[1][1][0]+ costMatrixLIL_AW[1][1][1] + costMatrixLIL_AW[1][1][2] + costMatrixLIL_AW[1][1][3] + costMatrixLIL_AW[1][1][4])/5);
+		double AccuracyMean =0, RecallMean=0, PrecisionMean=0, FMeasureMean=0, AM=0,RM=0,PM=0,FMM=0,a,b,c,d;
+
+		for(int i =0; i < NUMRUNS; i ++)
+		{
+			a = costMatrixLIL_AW[0][0][i];
+			b = costMatrixLIL_AW[0][1][i];
+			c = costMatrixLIL_AW[1][0][i];
+			d = costMatrixLIL_AW[1][1][i];
+			
+			AccuracyMean +=(a+d)/(a+b+c+d);
+			RecallMean += (a)/(a+b);
+			PrecisionMean +=(a)/(a+c);
+			FMeasureMean +=(2*a)/(2*a+b+c);
+		}
 		
-		System.out.println("\n\n BOTH Weights");
-		System.out.println("Accuracy : " + (a+d)/(a+b+c+d));
-		System.out.println("Recall : " + (a)/(a+b));
-		System.out.println("Precision : " + (a)/(a+c));
-		System.out.println("F-Measure : " + (2*a)/(2*a+b+c));
+		AccuracyMean /=NUMRUNS;
+		RecallMean /=NUMRUNS;
+		PrecisionMean /=NUMRUNS;
+		FMeasureMean /=NUMRUNS;
+		
+		
+		double sumA=0,sumR=0,sumP=0,sumF=0,help =0;
+		
+		for(int i =0; i < NUMRUNS; i ++)
+		{
+			a = costMatrixLIL_AW[0][0][i];
+			b = costMatrixLIL_AW[0][1][i];
+			c = costMatrixLIL_AW[1][0][i];
+			d = costMatrixLIL_AW[1][1][i];
+			
+			help = (((a+d)/(a+b+c+d)) - AccuracyMean);
+			sumA += Math.pow(help,2);
+			help = (((a)/(a+b)) - RecallMean);
+			sumR += Math.pow(help,2);
+			help = (((a)/(a+c)) - PrecisionMean);
+			sumP += Math.pow(help,2);
+			help = (((2*a)/(2*a+b+c)) - FMeasureMean);
+			sumF += Math.pow(help,2);
+		}
+		
+		sumA /= NUMRUNS;
+		sumR /= NUMRUNS;
+		sumP /= NUMRUNS;
+		sumF /= NUMRUNS;
+		
+		sumA = Math.sqrt(sumA);
+		sumR= Math.sqrt(sumR);
+		sumP = Math.sqrt(sumP);
+		sumF = Math.sqrt(sumF);
+		
+		System.out.println("LWL_AW Weights");
+		System.out.println("Accuracy : " + AccuracyMean + " +/-" + sumA);
+		System.out.println("Recall : " + RecallMean + " +/-" + sumR);
+		System.out.println("Precision : " + PrecisionMean + " +/-" + sumP);
+		System.out.println("F-Measure : " + FMeasureMean + " +/-" + sumF);
+	}
+	
+	public static void costMatricOutputAW_LWL()
+	{
+		double AccuracyMean =0, RecallMean=0, PrecisionMean=0, FMeasureMean=0, AM=0,RM=0,PM=0,FMM=0,a,b,c,d;
+
+		for(int i =0; i < NUMRUNS; i ++)
+		{
+			a = costMatrixAW_LIL[0][0][i];
+			b = costMatrixAW_LIL[0][1][i];
+			c = costMatrixAW_LIL[1][0][i];
+			d = costMatrixAW_LIL[1][1][i];
+			
+			AccuracyMean += (a+d)/(a+b+c+d);
+			RecallMean += (a)/(a+b);
+			PrecisionMean +=(a)/(a+c);
+			FMeasureMean +=(2*a)/(2*a+b+c);
+		}
+		
+		AccuracyMean /=NUMRUNS;
+		RecallMean /=NUMRUNS;
+		PrecisionMean /=NUMRUNS;
+		FMeasureMean /=NUMRUNS;
+		
+		
+		double sumA=0,sumR=0,sumP=0,sumF=0,help =0;
+		
+		for(int i =0; i < NUMRUNS; i ++)
+		{
+			a = costMatrixAW_LIL[0][0][i];
+			b = costMatrixAW_LIL[0][1][i];
+			c = costMatrixAW_LIL[1][0][i];
+			d = costMatrixAW_LIL[1][1][i];
+			
+			help = (((a+d)/(a+b+c+d)) - AccuracyMean);
+			sumA += Math.pow(help,2);
+			help = (((a)/(a+b)) - RecallMean);
+			sumR += Math.pow(help,2);
+			help = (((a)/(a+c)) - PrecisionMean);
+			sumP += Math.pow(help,2);
+			help = (((2*a)/(2*a+b+c)) - FMeasureMean);
+			sumF += Math.pow(help,2);
+		}
+		
+		sumA /= NUMRUNS;
+		sumR /= NUMRUNS;
+		sumP /= NUMRUNS;
+		sumF /= NUMRUNS;
+		
+		sumA = Math.sqrt(sumA);
+		sumR= Math.sqrt(sumR);
+		sumP = Math.sqrt(sumP);
+		sumF = Math.sqrt(sumF);
+		
+		System.out.println("AW_LWL Weights");
+		System.out.println("Accuracy : " + AccuracyMean + " +/-" + sumA);
+		System.out.println("Recall : " + RecallMean + " +/-" + sumR);
+		System.out.println("Precision : " + PrecisionMean + " +/-" + sumP);
+		System.out.println("F-Measure : " + FMeasureMean + " +/-" + sumF);
 	}
 	 /**
      * Finds the weights using Markov Chain Monte Carlo
@@ -584,6 +747,7 @@ public static void costMatricOutputNW()
     				costMatrixIW[i][a][k]=0;
     				costMatrixAW[i][a][k]=0;
     				costMatrixLIL_AW[i][a][k]=0;
+    				costMatrixAW_LIL[i][a][k]=0;
     			}
     		}
     	}
@@ -618,7 +782,12 @@ public static void costMatricOutputNW()
         costMatrixIWModifier(model.distributionForInstance(test),test,0);
         
     }
-    
+    /**
+     * Used to find AW 
+     * @param train
+     * @param test
+     * @throws Exception
+     */
     public static void AW(Instances train, Instance test) throws Exception
     {
     	double[] AttributeWeights = new double[train.numAttributes()];
@@ -643,7 +812,13 @@ public static void costMatricOutputNW()
 		
     	
     }
-
+/**
+ * Used to find LWL-> AW
+ * @param train
+ * @param test
+ * @throws Exception
+ */
+		
     public static void LWL__AW(Instances train, Instance test)throws Exception
     {
     	double [] AttributeWeights = new double[train.numAttributes()];
@@ -668,7 +843,12 @@ public static void costMatricOutputNW()
         	costMatrixLIL_AWModifier(model.distributionForInstance(test),test,i);
         }
     }
-    
+    /**
+     * Used to find AW -> LWL
+     * @param train
+     * @param test
+     * @throws Exception
+     */
     public static void AW_LWL(Instances train, Instance test) throws Exception
     {
     	double[] weightsAttribute = new double[train.numAttributes()];
@@ -677,7 +857,7 @@ public static void costMatricOutputNW()
     	for(int a =0; a < NUMRUNS; a++)
         {
         	Arrays.fill(weightsAttribute,1);
-        	weightsAttribute = MCMC(train,weightsAttribute,.05,.00001);
+        	weightsAttribute = MCMC(train,weightsAttribute,deltaWeight,tau);
         	model.setWeight(weightsAttribute);
         	
         	InstanceWeights = getweightsInstances(train,test,weightsAttribute);
